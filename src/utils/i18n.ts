@@ -10,20 +10,76 @@ type Translations = {
 };
 
 const translations: Translations = {
+  // Branding
+  "brand.name": {
+    en: "Jai Durga Bricks",
+    te: "జై దుర్గా బ్రిక్స్",
+  },
+  "brand.shortName": {
+    en: "JD Bricks",
+    te: "జే.డి బ్రిక్స్",
+  },
+
   // Navigation
   "nav.home": {
     en: "Home",
     te: "హోమ్",
   },
   "nav.workers": {
-    en: "Workers",
-    te: "కార్మికులు",
+    en: "Mens",
+    te: "మనుషులు",
+  },
+
+  // Authentication
+  "auth.signIn": {
+    en: "Sign In",
+    te: "సైన్ ఇన్",
+  },
+  "auth.email": {
+    en: "Email address",
+    te: "ఇమెయిల్ చిరునామా",
+  },
+  "auth.password": {
+    en: "Password",
+    te: "పాస్‌వర్డ్",
+  },
+  "auth.signingIn": {
+    en: "Signing in...",
+    te: "సైన్ ఇన్ అవుతోంది...",
+  },
+  "auth.useMagicLink": {
+    en: "Sign in with Magic Link instead",
+    te: "మ్యాజిక్ లింక్‌తో సైన్ ఇన్ చేయండి",
+  },
+  "auth.usePassword": {
+    en: "Sign in with Password instead",
+    te: "పాస్‌వర్డ్‌తో సైన్ ఇన్ చేయండి",
+  },
+  "auth.sendMagicLink": {
+    en: "Send Magic Link",
+    te: "మ్యాజిక్ లింక్ పంపండి",
+  },
+  "auth.checkEmail": {
+    en: "Check your email",
+    te: "మీ ఇమెయిల్‌ని తనిఖీ చేయండి",
+  },
+  "auth.magicLinkSent": {
+    en: "We've sent a magic link to your email. Click on it to sign in.",
+    te: "మేము మీ ఇమెయిల్‌కి మ్యాజిక్ లింక్‌ని పంపాము. సైన్ ఇన్ చేయడానికి దానిపై క్లిక్ చేయండి.",
+  },
+  "auth.backToLogin": {
+    en: "Back to Login",
+    te: "లాగిన్‌కి తిరిగి వెళ్ళండి",
+  },
+  "auth.signOut": {
+    en: "Sign Out",
+    te: "సైన్ అవుట్",
   },
 
   // Worker management
   "worker.add": {
-    en: "Add Worker",
-    te: "కార్మికుడిని జోడించండి",
+    en: "Add Mens",
+    te: "మనుషులు ని జోడించండి",
   },
   "worker.name": {
     en: "Name",
@@ -43,6 +99,10 @@ const translations: Translations = {
     en: "Kundi Work",
     te: "కుండీ చేత",
   },
+  "work.kundiOptions": {
+    en: "Kundi Type",
+    te: "కుండీ రకం",
+  },
   "work.kundiDriver": {
     en: "Kundi Driver",
     te: "కుండీ చేత డ్రైవర్",
@@ -53,7 +113,7 @@ const translations: Translations = {
   },
   "work.brickBaking": {
     en: "Brick Baking",
-    te: "ఇటుక ఆమా kalchadam",
+    te: "ఆమా కాల్చడం",
   },
   "work.brickLoadTractor": {
     en: "Brick Load - Tractor",
@@ -76,6 +136,10 @@ const translations: Translations = {
   "tab.usage": {
     en: "Usage",
     te: "వాడకం",
+  },
+  "tab.addUsage": {
+    en: "Add Usage",
+    te: "వాడకం జోడించు",
   },
   "tab.totalWork": {
     en: "Total Work",
@@ -107,9 +171,17 @@ const translations: Translations = {
     en: "Work Type",
     te: "పని రకం",
   },
+  "common.all": {
+    en: "All",
+    te: "అన్నీ",
+  },
   "common.driver": {
     en: "Driver",
     te: "డ్రైవర్",
+  },
+  "common.work": {
+    en: "Work",
+    te: "పని",
   },
   "common.brickCount": {
     en: "Brick Count",
@@ -126,6 +198,64 @@ const translations: Translations = {
   "common.total": {
     en: "Total",
     te: "మొత్తం",
+  },
+  "common.delete": {
+    en: "Delete",
+    te: "తొలగించు",
+  },
+  "common.removeUser": {
+    en: "Remove User",
+    te: "మనిషిని తొలగించు",
+  },
+  "common.search": {
+    en: "Search...",
+    te: "వెతకండి...",
+  },
+  "common.noResults": {
+    en: "No results found",
+    te: "ఫలితాలు కనుగొనబడలేదు",
+  },
+  "common.confirmDelete": {
+    en: "Confirm Delete",
+    te: "తొలగించడాన్ని నిర్ధారించండి",
+  },
+  "common.confirmDeleteWorker": {
+    en: "Are you sure you want to delete this person? This action cannot be undone.",
+    te: "మీరు ఖచ్చితంగా ఈ మనిషిని తొలగించాలనుకుంటున్నారా? ఈ చర్య రద్దు చేయబడదు.",
+  },
+  "common.confirmDeleteWork": {
+    en: "Are you sure you want to delete this work record? This action cannot be undone.",
+    te: "మీరు ఖచ్చితంగా ఈ పని రికార్డును తొలగించాలనుకుంటున్నారా? ఈ చర్య రద్దు చేయబడదు.",
+  },
+  "common.confirmDeleteUsage": {
+    en: "Are you sure you want to delete this usage record? This action cannot be undone.",
+    te: "మీరు ఖచ్చితంగా ఈ వాడకం రికార్డును తొలగించాలనుకుంటున్నారా? ఈ చర్య రద్దు చేయబడదు.",
+  },
+  "common.showFilters": {
+    en: "Show Filters",
+    te: "ఫిల్టర్‌లను చూపించు",
+  },
+  "common.hideFilters": {
+    en: "Hide Filters",
+    te: "ఫిల్టర్‌లను దాచు",
+  },
+  "common.resetFilters": {
+    en: "Reset Filters",
+    te: "ఫిల్టర్‌లను రీసెట్ చేయండి",
+  },
+  "common.actions": {
+    en: "Actions",
+    te: "చర్యలు",
+  },
+  "common.backToHome": {
+    en: "Back to Home",
+    te: "హోమ్‌కి తిరిగి",
+  },
+
+  // Error messages
+  "error.workerNotFound": {
+    en: "Worker not found",
+    te: "కార్మికుడు కనుగొనబడలేదు",
   },
 };
 

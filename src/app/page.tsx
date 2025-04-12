@@ -1,103 +1,278 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useEffect, useState } from "react";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { useLanguage } from "@/utils/i18n";
+import { Worker } from "@/types";
+import {
+  UserPlusIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import Link from "next/link";
+import { getWorkers, createWorker } from "@/utils/supabase";
+import withAuth from "@/contexts/withAuth";
+
+function Home() {
+  const { t } = useLanguage();
+  const [workers, setWorkers] = useState<Worker[]>([]);
+  const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    name: "",
+    phone: "",
+    initialDebt: "",
+  });
+
+  // Load workers from Supabase
+  useEffect(() => {
+    async function fetchWorkers() {
+      try {
+        const workersData = await getWorkers();
+        setWorkers(workersData);
+        setFilteredWorkers(workersData);
+      } catch (error) {
+        console.error("Error loading workers:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchWorkers();
+  }, []);
+
+  // Filter workers based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredWorkers(workers);
+      return;
+    }
+
+    const query = searchQuery.toLowerCase();
+    const filtered = workers.filter(
+      (worker) =>
+        worker.name.toLowerCase().includes(query) ||
+        worker.phone.toLowerCase().includes(query)
+    );
+    setFilteredWorkers(filtered);
+  }, [searchQuery, workers]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      phone: "",
+      initialDebt: "",
+    });
+  };
+
+  const handleAddWorker = async () => {
+    if (!formData.name || !formData.phone) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Create new worker in Supabase
+      const newWorker = await createWorker({
+        name: formData.name,
+        phone: formData.phone,
+        ...(formData.initialDebt && {
+          initialDebt: Number(formData.initialDebt),
+        }),
+      });
+
+      // Update state
+      setWorkers((prev) => [newWorker, ...prev]);
+      setFilteredWorkers((prev) => [newWorker, ...prev]);
+
+      // Close modal and reset form
+      setShowAddModal(false);
+      resetForm();
+    } catch (error) {
+      console.error("Error adding worker:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="max-w-5xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">
+          {t("nav.workers")}
+        </h1>
+        <Button
+          className="flex items-center bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          onClick={() => setShowAddModal(true)}
+        >
+          <UserPlusIcon className="h-5 w-5 mr-2" />
+          {t("worker.add")}
+        </Button>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Search Filter */}
+      <div className="mb-6">
+        <div className="relative">
+          <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+          <Input
+            type="text"
+            placeholder={t("common.search") || "Search..."}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 pr-4 py-2 border rounded-lg shadow-sm text-gray-900"
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
+
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : filteredWorkers.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredWorkers.map((worker) => (
+            <Link key={worker.id} href={`/workers/${worker.id}`}>
+              <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer bg-white border border-gray-200">
+                <CardContent className="pt-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {worker.name}
+                  </h3>
+                  <p className="text-sm text-gray-700 mt-1">{worker.phone}</p>
+                  {worker.initialDebt && (
+                    <p className="text-sm text-red-700 font-medium mt-1">
+                      {t("worker.debt")}: ₹{worker.initialDebt}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-10">
+          <p className="text-gray-500">
+            {t("common.noResults") || "No results found"}
+          </p>
+        </div>
+      )}
+
+      {/* Add Person Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold text-gray-900">
+                {t("worker.add")}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  resetForm();
+                }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-800 mb-1"
+                >
+                  {t("worker.name")}
+                </label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  placeholder={t("worker.name")}
+                  className="text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="phone"
+                  className="block text-sm font-medium text-gray-800 mb-1"
+                >
+                  {t("worker.phone")}
+                </label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Enter phone number"
+                  className="text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="initialDebt"
+                  className="block text-sm font-medium text-gray-800 mb-1"
+                >
+                  {t("worker.debt")} (₹)
+                </label>
+                <Input
+                  id="initialDebt"
+                  name="initialDebt"
+                  value={formData.initialDebt}
+                  onChange={handleInputChange}
+                  type="number"
+                  placeholder="0"
+                  className="text-gray-900"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-4 mt-6">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddModal(false);
+                  resetForm();
+                }}
+                disabled={isSubmitting}
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                onClick={handleAddWorker}
+                disabled={!formData.name || !formData.phone || isSubmitting}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin h-4 w-4 mr-2 border-2 border-t-transparent rounded-full"></div>
+                    {t("common.save")}
+                  </div>
+                ) : (
+                  t("common.save")
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+export default withAuth(Home);
