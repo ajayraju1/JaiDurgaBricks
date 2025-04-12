@@ -10,9 +10,10 @@ import {
   UserPlusIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { getWorkers, createWorker } from "@/utils/supabase";
+import { getWorkers, createWorker, deleteWorker } from "@/utils/supabase";
 import withAuth from "@/contexts/withAuth";
 
 function Home() {
@@ -23,6 +24,8 @@ function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -107,6 +110,37 @@ function Home() {
     }
   };
 
+  const handleDeleteClick = (id: string) => {
+    setWorkerToDelete(id);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!workerToDelete) return;
+
+    try {
+      // Delete worker using the Supabase utility
+      await deleteWorker(workerToDelete);
+
+      // Update local state
+      setWorkers(workers.filter((worker) => worker.id !== workerToDelete));
+      setFilteredWorkers(
+        filteredWorkers.filter((worker) => worker.id !== workerToDelete)
+      );
+
+      // Close modal
+      setShowDeleteModal(false);
+      setWorkerToDelete(null);
+    } catch (error) {
+      console.error("Error deleting worker:", error);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setWorkerToDelete(null);
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -143,9 +177,15 @@ function Home() {
       ) : filteredWorkers.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredWorkers.map((worker) => (
-            <Link key={worker.id} href={`/workers/${worker.id}`}>
-              <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer bg-white border border-gray-200">
-                <CardContent className="pt-4">
+            <Card
+              key={worker.id}
+              className="h-full hover:shadow-lg transition-shadow bg-white border border-gray-200"
+            >
+              <CardContent className="pt-4">
+                <Link
+                  href={`/workers/${worker.id}`}
+                  className="block cursor-pointer"
+                >
                   <h3 className="text-lg font-semibold text-gray-900">
                     {worker.name}
                   </h3>
@@ -155,9 +195,22 @@ function Home() {
                       {t("worker.debt")}: ₹{worker.initialDebt}
                     </p>
                   )}
-                </CardContent>
-              </Card>
-            </Link>
+                </Link>
+                <div className="mt-3 flex justify-end">
+                  <Button
+                    className="flex items-center text-sm py-1 px-2 h-auto"
+                    variant="danger"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(worker.id);
+                    }}
+                  >
+                    <TrashIcon className="h-3 w-3 mr-1" />
+                    {t("common.removeUser")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : (
@@ -266,6 +319,28 @@ function Home() {
                 ) : (
                   t("common.save")
                 )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg max-w-md w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              {t("common.confirmDelete")}
+            </h3>
+            <p className="mb-6 text-gray-900">
+              {t("common.confirmDeleteWorker")}
+            </p>
+            <div className="flex justify-end space-x-4">
+              <Button variant="outline" onClick={cancelDelete}>
+                {t("common.cancel")}
+              </Button>
+              <Button variant="danger" onClick={confirmDelete}>
+                {t("common.delete")}
               </Button>
             </div>
           </div>

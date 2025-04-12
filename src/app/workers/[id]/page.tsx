@@ -377,38 +377,30 @@ function WorkerDetailPage() {
         <CardContent className="p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
             <div>
-              <h1 className="text-2xl font-bold text-indigo-900">
+              <h1 className="text-xl font-bold text-indigo-900">
                 {worker.name}
               </h1>
-              <p className="text-gray-800 mt-1">{worker.phone}</p>
+              <p className="text-gray-800 text-sm">{worker.phone}</p>
               {worker.initialDebt && (
-                <p className="text-red-600 mt-1">
+                <p className="text-red-600 text-sm">
                   {t("worker.debt")}: ₹{worker.initialDebt}
                 </p>
               )}
             </div>
-            <div className="mt-4 sm:mt-0 flex space-x-3">
+            <div className="mt-3 sm:mt-0 flex flex-wrap gap-2">
               <Button
-                className="flex items-center"
+                className="flex items-center text-sm py-1 px-2 h-auto"
                 onClick={() => setShowWorkModal(true)}
               >
-                <PlusIcon className="h-5 w-5 mr-2" />
+                <PlusIcon className="h-3 w-3 mr-1" />
                 {t("tab.addTodayWork")}
               </Button>
               <Button
-                className="flex items-center"
+                className="flex items-center text-sm py-1 px-2 h-auto"
                 onClick={() => setShowUsageModal(true)}
               >
-                <PlusIcon className="h-5 w-5 mr-2" />
+                <PlusIcon className="h-3 w-3 mr-1" />
                 {t("tab.addUsage")}
-              </Button>
-              <Button
-                className="flex items-center"
-                variant="danger"
-                onClick={() => handleDeleteClick(workerId, "worker")}
-              >
-                <TrashIcon className="h-5 w-5 mr-2" />
-                {t("common.removeUser")}
               </Button>
             </div>
           </div>
@@ -476,19 +468,19 @@ function WorkerDetailPage() {
             {activeTab === "thisWeek" && (
               <div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 table-fixed">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-20">
                           {t("common.date")}
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                           {t("common.workType")}
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-16">
                           {t("common.amount")}
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-12">
                           {t("common.actions")}
                         </th>
                       </tr>
@@ -499,10 +491,10 @@ function WorkerDetailPage() {
                           key={record.id}
                           className="bg-green-50 hover:bg-green-100"
                         >
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
                             {formatDate(record.date)}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-green-800">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-green-800">
                             {getWorkTypeLabel(record.workType)}
                             {record.isDriver && record.workType === "kundi"
                               ? ` - ${t("common.driver")}`
@@ -512,10 +504,10 @@ function WorkerDetailPage() {
                             {record.brickCount && ` (${record.brickCount})`}
                             {record.isHalfDay && ` - ${t("common.halfDay")}`}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-green-700 text-right font-medium">
+                          <td className="px-2 py-2 whitespace-nowrap text-base text-green-700 text-right font-medium">
                             ₹{record.amount}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                          <td className="px-2 py-2 whitespace-nowrap text-right">
                             <button
                               onClick={() =>
                                 handleDeleteClick(record.id, "work")
@@ -532,16 +524,16 @@ function WorkerDetailPage() {
                           key={record.id}
                           className="bg-red-50 hover:bg-red-100"
                         >
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
                             {formatDate(record.date)}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-red-600">
                             {t("tab.usage")}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right">
+                          <td className="px-2 py-2 whitespace-nowrap text-base text-red-600 text-right font-medium">
                             -₹{record.amount}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-right">
+                          <td className="px-2 py-2 whitespace-nowrap text-right">
                             <button
                               onClick={() =>
                                 handleDeleteClick(record.id, "usage")
@@ -558,11 +550,11 @@ function WorkerDetailPage() {
                       <tr>
                         <td
                           colSpan={2}
-                          className="px-4 py-3 text-right text-sm font-medium text-gray-800"
+                          className="px-2 py-2 text-right text-sm font-medium text-gray-800"
                         >
                           {t("common.total")}:
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-green-700">
+                        <td className="px-2 py-2 text-right text-base font-bold text-green-700">
                           ₹
                           {calculateTotal(filteredWorkRecords) -
                             filteredUsageRecords.reduce(
@@ -580,16 +572,16 @@ function WorkerDetailPage() {
             {activeTab === "totalWork" && (
               <div>
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
+                  <table className="min-w-full divide-y divide-gray-200 table-fixed">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider w-20">
                           {t("common.date")}
                         </th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-800 uppercase tracking-wider">
                           {t("common.workType")}
                         </th>
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-800 uppercase tracking-wider">
+                        <th className="px-2 py-2 text-right text-xs font-medium text-gray-800 uppercase tracking-wider w-20">
                           {t("common.amount")}
                         </th>
                       </tr>
@@ -600,10 +592,10 @@ function WorkerDetailPage() {
                           key={record.id}
                           className="bg-green-50 hover:bg-green-100"
                         >
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
                             {formatDate(record.date)}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-green-800">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-green-800">
                             {getWorkTypeLabel(record.workType)}
                             {record.isDriver && record.workType === "kundi"
                               ? ` - ${t("common.driver")}`
@@ -613,7 +605,7 @@ function WorkerDetailPage() {
                             {record.brickCount && ` (${record.brickCount})`}
                             {record.isHalfDay && ` - ${t("common.halfDay")}`}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-green-700 text-right font-medium">
+                          <td className="px-2 py-2 whitespace-nowrap text-base text-green-700 text-right font-medium">
                             ₹{record.amount}
                           </td>
                         </tr>
@@ -623,13 +615,13 @@ function WorkerDetailPage() {
                           key={record.id}
                           className="bg-red-50 hover:bg-red-100"
                         >
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
                             {formatDate(record.date)}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600">
+                          <td className="px-2 py-2 whitespace-nowrap text-sm text-red-600">
                             {t("tab.usage")}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-red-600 text-right">
+                          <td className="px-2 py-2 whitespace-nowrap text-base text-red-600 text-right font-medium">
                             -₹{record.amount}
                           </td>
                         </tr>
@@ -639,11 +631,11 @@ function WorkerDetailPage() {
                       <tr>
                         <td
                           colSpan={2}
-                          className="px-4 py-3 text-right text-sm font-medium text-gray-800"
+                          className="px-2 py-2 text-right text-sm font-medium text-gray-800"
                         >
                           {t("common.total")}:
                         </td>
-                        <td className="px-4 py-3 text-right text-sm font-bold text-gray-900">
+                        <td className="px-2 py-2 text-right text-base font-bold text-gray-900">
                           ₹
                           {calculateTotal(filteredWorkRecords) -
                             filteredUsageRecords.reduce(

@@ -147,7 +147,7 @@ const translations: Translations = {
   },
   "tab.addTodayWork": {
     en: "Add Today's Work",
-    te: "ఈ రోజు పని జోడించు",
+    te: " పని జోడించు",
   },
 
   // Common
