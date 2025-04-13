@@ -10,12 +10,15 @@ import {
   UserGroupIcon,
   ArrowRightOnRectangleIcon,
   BuildingStorefrontIcon,
+  CalculatorIcon,
 } from "@heroicons/react/24/outline";
 import { useLanguage } from "@/utils/i18n";
 import { useAuth } from "@/contexts/AuthContext";
+import { CalculatorModal } from "../ui/CalculatorModal";
 
 export const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const { user, signOut } = useAuth();
 
@@ -30,6 +33,11 @@ export const Header: React.FC = () => {
   const handleSignOut = async () => {
     await signOut();
     setIsMenuOpen(false);
+  };
+
+  const toggleCalculator = () => {
+    setIsCalculatorOpen(!isCalculatorOpen);
+    if (isMenuOpen) setIsMenuOpen(false);
   };
 
   return (
@@ -58,13 +66,13 @@ export const Header: React.FC = () => {
               <HomeIcon className="h-5 w-5 mr-1" />
               {t("nav.home")}
             </Link>
-            <Link
-              href="/workers"
+            <button
+              onClick={toggleCalculator}
               className="flex items-center text-white hover:text-indigo-200 px-3 py-2 text-sm font-medium"
             >
-              <UserGroupIcon className="h-5 w-5 mr-1" />
-              {t("nav.workers")}
-            </Link>
+              <CalculatorIcon className="h-5 w-5 mr-1" />
+              {t("nav.calculator")}
+            </button>
             {user && (
               <button
                 onClick={handleSignOut}
@@ -115,14 +123,13 @@ export const Header: React.FC = () => {
               <HomeIcon className="h-5 w-5 mr-2" />
               {t("nav.home")}
             </Link>
-            <Link
-              href="/workers"
-              className="flex items-center text-white hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            <button
+              onClick={toggleCalculator}
+              className="flex items-center text-white hover:bg-indigo-800 w-full text-left px-3 py-2 rounded-md text-base font-medium"
             >
-              <UserGroupIcon className="h-5 w-5 mr-2" />
-              {t("nav.workers")}
-            </Link>
+              <CalculatorIcon className="h-5 w-5 mr-2" />
+              {t("nav.calculator")}
+            </button>
             {user && (
               <button
                 onClick={handleSignOut}
@@ -135,6 +142,12 @@ export const Header: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Calculator Modal */}
+      <CalculatorModal
+        isOpen={isCalculatorOpen}
+        onClose={() => setIsCalculatorOpen(false)}
+      />
     </header>
   );
 };

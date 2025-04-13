@@ -39,7 +39,7 @@ import {
 } from "@/utils/supabase";
 import withAuth from "@/contexts/withAuth";
 
-function WorkerDetailPage() {
+function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useLanguage();
@@ -54,7 +54,13 @@ function WorkerDetailPage() {
     UsageRecord[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
-  const workerId = pathname.split("/")[2];
+
+  // Use the prop workerId if provided, otherwise extract from the URL
+  const workerId = propWorkerId || pathname.split("/")[2];
+
+  // Check if we're being rendered directly in Home or as a separate page
+  const isDirectlyRendered = !!propWorkerId;
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<{
     id: string;
@@ -355,7 +361,7 @@ function WorkerDetailPage() {
       <div className="text-center py-10">
         <p className="text-red-600 mb-4">{t("error.workerNotFound")}</p>
         <Link href="/">
-          <Button>{t("common.backToHome")}</Button>
+          <Button>{t("nav.workers")}</Button>
         </Link>
       </div>
     );
@@ -363,15 +369,18 @@ function WorkerDetailPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <Link
-          href="/"
-          className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-1" />
-          {t("nav.workers")}
-        </Link>
-      </div>
+      {/* Only show back button if not directly rendered in Home */}
+      {!isDirectlyRendered && (
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center text-indigo-600 hover:text-indigo-800"
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-1" />
+            {t("nav.workers")}
+          </Link>
+        </div>
+      )}
 
       <Card className="mb-6">
         <CardContent className="p-6">
@@ -813,12 +822,12 @@ function WorkerDetailPage() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div className="fixed inset-0 backdrop-blur-sm bg-red-800/20 flex items-center justify-center z-50 transition-all duration-300">
-          <div className="bg-white/95 p-6 rounded-xl shadow-2xl max-w-md w-full border border-red-100">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">
+        <div className="fixed inset-0 bg-red-600/20 backdrop-blur-sm flex items-center justify-center z-50 transition-all duration-300">
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 max-w-md w-full shadow-xl">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
               {t("common.confirmDelete")}
             </h3>
-            <p className="mb-6 text-gray-900">
+            <p className="mb-6 text-gray-700">
               {recordToDelete?.type === "worker"
                 ? t("common.confirmDeleteWorker")
                 : recordToDelete?.type === "work"

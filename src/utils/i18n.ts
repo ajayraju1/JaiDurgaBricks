@@ -29,6 +29,10 @@ const translations: Translations = {
     en: "Mens",
     te: "మనుషులు",
   },
+  "nav.calculator": {
+    en: "Calculator",
+    te: "క్యాల్క్యులేటర్",
+  },
 
   // Authentication
   "auth.signIn": {
@@ -155,6 +159,14 @@ const translations: Translations = {
     en: "Save",
     te: "సేవ్ చేయండి",
   },
+  "common.add": {
+    en: "Add",
+    te: "జోడించు",
+  },
+  "common.back": {
+    en: "Back",
+    te: "వెనుకకు",
+  },
   "common.cancel": {
     en: "Cancel",
     te: "రద్దు చేయండి",
@@ -219,6 +231,14 @@ const translations: Translations = {
     en: "Confirm Delete",
     te: "తొలగించడాన్ని నిర్ధారించండి",
   },
+  "common.deleteConfirmation": {
+    en: "Confirm Delete",
+    te: "తొలగించడాన్ని నిర్ధారించండి",
+  },
+  "common.deleteWarning": {
+    en: "Are you sure you want to delete this person? This action cannot be undone.",
+    te: "మీరు ఖచ్చితంగా ఈ మనిషిని తొలగించాలనుకుంటున్నారా? ఈ చర్య రద్దు చేయబడదు.",
+  },
   "common.confirmDeleteWorker": {
     en: "Are you sure you want to delete this person? This action cannot be undone.",
     te: "మీరు ఖచ్చితంగా ఈ మనిషిని తొలగించాలనుకుంటున్నారా? ఈ చర్య రద్దు చేయబడదు.",
@@ -256,6 +276,16 @@ const translations: Translations = {
   "error.workerNotFound": {
     en: "Worker not found",
     te: "కార్మికుడు కనుగొనబడలేదు",
+  },
+
+  // Calculator
+  "calculator.title": {
+    en: "Calculator",
+    te: "క్యాల్క్యులేటర్",
+  },
+  "calculator.clear": {
+    en: "AC",
+    te: "AC",
   },
 };
 
