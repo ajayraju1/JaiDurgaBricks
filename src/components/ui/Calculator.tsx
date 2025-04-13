@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { Card } from "./Card";
-import { Button } from "./Button";
 import { useLanguage } from "@/utils/i18n";
 import { twMerge } from "tailwind-merge";
 
@@ -66,7 +65,7 @@ export const Calculator: React.FC = () => {
         setInput(calculatedResult.toString());
         setEvaluated(true);
       }
-    } catch (error) {
+    } catch {
       setResult("Error");
       setEvaluated(true);
     }

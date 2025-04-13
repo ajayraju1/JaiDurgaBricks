@@ -7,7 +7,6 @@ import {
   XMarkIcon,
   LanguageIcon,
   HomeIcon,
-  UserGroupIcon,
   ArrowRightOnRectangleIcon,
   BuildingStorefrontIcon,
   CalculatorIcon,
