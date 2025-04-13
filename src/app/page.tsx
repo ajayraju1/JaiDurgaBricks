@@ -13,13 +13,21 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
-import { getWorkers, createWorker, deleteWorker } from "@/utils/supabase";
+import {
+  getWorkers,
+  createWorker,
+  deleteWorker,
+  getWorkerBalance,
+} from "@/utils/supabase";
 import withAuth from "@/contexts/withAuth";
 
 function Home() {
   const { t } = useLanguage();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [filteredWorkers, setFilteredWorkers] = useState<Worker[]>([]);
+  const [workerBalances, setWorkerBalances] = useState<{
+    [key: string]: number;
+  }>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -32,13 +40,21 @@ function Home() {
     initialDebt: "",
   });
 
-  // Load workers from Supabase
+  // Load workers and their balances from Supabase
   useEffect(() => {
     async function fetchWorkers() {
       try {
         const workersData = await getWorkers();
         setWorkers(workersData);
         setFilteredWorkers(workersData);
+
+        // Fetch balances for each worker
+        const balances: { [key: string]: number } = {};
+        for (const worker of workersData) {
+          const balance = await getWorkerBalance(worker.id);
+          balances[worker.id] = balance;
+        }
+        setWorkerBalances(balances);
       } catch (error) {
         console.error("Error loading workers:", error);
       } finally {
@@ -186,8 +202,17 @@ function Home() {
                   href={`/workers/${worker.id}`}
                   className="block cursor-pointer"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {worker.name}
+                  <h3 className="text-lg font-semibold text-gray-900 flex justify-between items-center">
+                    <span>{worker.name}</span>
+                    <span
+                      className={`text-sm ${
+                        workerBalances[worker.id] < 0
+                          ? "text-red-500"
+                          : "text-green-500"
+                      }`}
+                    >
+                      {`₹${workerBalances[worker.id] || 0}`}
+                    </span>
                   </h3>
                   <p className="text-sm text-gray-700 mt-1">{worker.phone}</p>
                   {worker.initialDebt && (

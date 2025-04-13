@@ -132,6 +132,25 @@ export async function getWorkers() {
   }
 }
 
+// Add getWorkerBalance function
+export async function getWorkerBalance(workerId: string) {
+  try {
+    const { data, error } = await supabase.rpc("get_worker_balance", {
+      worker_id_param: workerId,
+    });
+
+    if (error) {
+      console.error("Supabase error getting worker balance:", error);
+      throw error;
+    }
+
+    return data || 0;
+  } catch (error) {
+    console.error("Error in getWorkerBalance:", error);
+    throw error;
+  }
+}
+
 export async function getWorkerById(id: string) {
   try {
     const { data, error } = await supabase
@@ -199,7 +218,7 @@ export async function getWorkRecords(workerId?: string) {
     let query = supabase
       .from("work_records")
       .select("*")
-      .order("date", { ascending: false });
+      .order("date", { ascending: true }); // Changed to ascending: true
 
     if (workerId) {
       query = query.eq("worker_id", workerId);
@@ -279,7 +298,7 @@ export async function getUsageRecords(workerId?: string) {
     let query = supabase
       .from("usage_records")
       .select("*")
-      .order("date", { ascending: false });
+      .order("date", { ascending: true }); // Changed to ascending: true
 
     if (workerId) {
       query = query.eq("worker_id", workerId);

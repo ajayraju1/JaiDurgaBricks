@@ -267,10 +267,10 @@ function WorkerDetailPage() {
     return records.reduce((total, record) => total + record.amount, 0);
   };
 
-  // Format date from YYYY-MM-DD to localized format
+  // Format date from YYYY-MM-DD to DD/MM/YYYY
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("te-IN");
+    const [year, month, day] = dateString.split("-");
+    return `${day}/${month}/${year}`;
   };
 
   // Helper to get work type label
