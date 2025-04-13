@@ -219,6 +219,10 @@ const translations: Translations = {
     en: "Remove User",
     te: "మనిషిని తొలగించు",
   },
+  "common.selectUserToRemove": {
+    en: "Select a person to remove",
+    te: "తొలగించడానికి ఒక వ్యక్తిని ఎంచుకోండి",
+  },
   "common.search": {
     en: "Search...",
     te: "వెతకండి...",

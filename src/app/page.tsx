@@ -12,6 +12,7 @@ import {
   XMarkIcon,
   TrashIcon,
   ArrowLeftIcon,
+  UserMinusIcon,
 } from "@heroicons/react/24/outline";
 import {
   getWorkers,
@@ -55,6 +56,7 @@ function Home() {
     phone: "",
     initialDebt: "",
   });
+  const [isRemoveMode, setIsRemoveMode] = useState(false);
 
   // Function to fetch workers and their balances
   const fetchWorkersData = useCallback(async () => {
@@ -93,18 +95,58 @@ function Home() {
   // Filter workers based on search query
   useEffect(() => {
     if (searchQuery.trim() === "") {
-      setFilteredWorkers(workers);
+      // Sort workers by balance: positive values (highest to lowest), then negative values (lowest to highest), with zeros at the end
+      const sortedWorkers = [...workers].sort((a, b) => {
+        const balanceA = workerBalances[a.id] || 0;
+        const balanceB = workerBalances[b.id] || 0;
+
+        // If one is zero and the other isn't, put the zero at the end
+        if (balanceA === 0 && balanceB !== 0) return 1;
+        if (balanceA !== 0 && balanceB === 0) return -1;
+
+        // If one is positive and one is negative, positive goes first
+        if (balanceA > 0 && balanceB < 0) return -1;
+        if (balanceA < 0 && balanceB > 0) return 1;
+
+        // If both are positive, sort from highest to lowest
+        if (balanceA > 0 && balanceB > 0) return balanceB - balanceA;
+
+        // If both are negative, sort from lowest to highest (most negative first)
+        return balanceA - balanceB;
+      });
+
+      setFilteredWorkers(sortedWorkers);
       return;
     }
 
     const query = searchQuery.toLowerCase();
-    const filtered = workers.filter(
-      (worker) =>
-        worker.name.toLowerCase().includes(query) ||
-        worker.phone.toLowerCase().includes(query)
-    );
+    const filtered = workers
+      .filter(
+        (worker) =>
+          worker.name.toLowerCase().includes(query) ||
+          worker.phone.toLowerCase().includes(query)
+      )
+      .sort((a, b) => {
+        const balanceA = workerBalances[a.id] || 0;
+        const balanceB = workerBalances[b.id] || 0;
+
+        // If one is zero and the other isn't, put the zero at the end
+        if (balanceA === 0 && balanceB !== 0) return 1;
+        if (balanceA !== 0 && balanceB === 0) return -1;
+
+        // If one is positive and one is negative, positive goes first
+        if (balanceA > 0 && balanceB < 0) return -1;
+        if (balanceA < 0 && balanceB > 0) return 1;
+
+        // If both are positive, sort from highest to lowest
+        if (balanceA > 0 && balanceB > 0) return balanceB - balanceA;
+
+        // If both are negative, sort from lowest to highest (most negative first)
+        return balanceA - balanceB;
+      });
+
     setFilteredWorkers(filtered);
-  }, [searchQuery, workers]);
+  }, [searchQuery, workers, workerBalances]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -151,11 +193,6 @@ function Home() {
     }
   };
 
-  const handleDeleteClick = (id: string) => {
-    setWorkerToDelete(id);
-    setShowDeleteModal(true);
-  };
-
   const confirmDelete = async () => {
     if (!workerToDelete) return;
 
@@ -191,6 +228,27 @@ function Home() {
     setSelectedWorkerId(workerId);
   };
 
+  const toggleRemoveMode = () => {
+    setIsRemoveMode(!isRemoveMode);
+    if (isRemoveMode) {
+      setWorkerToDelete(null);
+    }
+  };
+
+  const handleCardClick = (workerId: string) => {
+    if (isRemoveMode) {
+      setWorkerToDelete(workerId === workerToDelete ? null : workerId);
+    } else {
+      handleWorkerClick(workerId);
+    }
+  };
+
+  const openDeleteConfirmation = () => {
+    if (workerToDelete) {
+      setShowDeleteModal(true);
+    }
+  };
+
   // If a worker is selected, show their details page
   if (selectedWorkerId) {
     return (
@@ -215,79 +273,124 @@ function Home() {
   // Otherwise, show the list of workers
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 drop-shadow-sm">
+      <div className="flex justify-between items-center mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 drop-shadow-sm">
           {t("nav.workers")}
         </h1>
-        <Button
-          className="flex items-center bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-          onClick={() => setShowAddModal(true)}
-        >
-          <UserPlusIcon className="h-5 w-5 mr-2" />
-          {t("worker.add")}
-        </Button>
+        <div className="flex space-x-2 sm:space-x-3">
+          <Button
+            className={`flex items-center shadow-sm ${
+              isRemoveMode
+                ? "bg-gray-600 hover:bg-gray-700"
+                : "bg-red-600 hover:bg-red-700"
+            } text-white text-xs sm:text-sm py-1 px-2 sm:py-2 sm:px-3`}
+            onClick={toggleRemoveMode}
+          >
+            <UserMinusIcon className="h-4 w-4 mr-1" />
+            {isRemoveMode ? t("common.cancel") : t("common.removeUser")}
+          </Button>
+          <Button
+            className="flex items-center bg-blue-600 hover:bg-blue-700 text-white shadow-sm text-xs sm:text-sm py-1 px-2 sm:py-2 sm:px-3"
+            onClick={() => setShowAddModal(true)}
+          >
+            <UserPlusIcon className="h-4 w-4 mr-1" />
+            {t("worker.add")}
+          </Button>
+        </div>
       </div>
 
       {/* Search Filter */}
-      <div className="mb-6">
+      <div className="mb-4 sm:mb-6">
         <div className="relative">
-          <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
+          <MagnifyingGlassIcon className="h-4 w-4 sm:h-5 sm:w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500" />
           <Input
             type="text"
             placeholder={t("common.search") || "Search..."}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-2 border rounded-lg shadow-sm text-gray-900"
+            className="pl-8 sm:pl-10 pr-4 py-1 sm:py-2 text-sm border rounded-lg shadow-sm text-gray-900"
           />
         </div>
       </div>
 
+      {/* Remove Mode Notification */}
+      {isRemoveMode && (
+        <div className="mb-4 sm:mb-6 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800 text-xs sm:text-sm">
+            {t("common.selectUserToRemove") || "Select a person to remove"}
+          </p>
+          <div className="flex justify-end mt-2">
+            <Button
+              variant="danger"
+              disabled={!workerToDelete}
+              onClick={openDeleteConfirmation}
+              size="sm"
+              className="py-1 px-2 text-xs sm:text-sm"
+            >
+              <TrashIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
+              {t("common.delete")}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        <div className="flex justify-center py-6 sm:py-10">
+          <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-t-2 border-b-2 border-indigo-600"></div>
         </div>
       ) : filteredWorkers.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {filteredWorkers.map((worker) => (
             <div
               key={worker.id}
-              className="h-full hover:shadow-lg transition-shadow bg-white border border-gray-200 cursor-pointer rounded-lg"
-              onClick={() => handleWorkerClick(worker.id)}
+              className={`h-full transition-all bg-white border cursor-pointer rounded-lg ${
+                isRemoveMode
+                  ? worker.id === workerToDelete
+                    ? "border-red-500 shadow-md ring-2 ring-red-500"
+                    : "border-gray-200 hover:border-red-200"
+                  : "border-gray-200 hover:shadow-lg"
+              }`}
+              onClick={() => handleCardClick(worker.id)}
             >
               <Card className="h-full border-0 shadow-none">
-                <CardContent className="pt-4">
+                <CardContent
+                  className={`p-3 sm:pt-4 ${
+                    isRemoveMode && worker.id === workerToDelete
+                      ? "bg-red-50"
+                      : ""
+                  }`}
+                >
                   <div className="block">
-                    <h3 className="text-lg font-semibold text-gray-900 flex justify-between items-center">
+                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 flex justify-between items-center">
                       <span>{worker.name}</span>
                       <span
-                        className={`text-sm ${
+                        className={`text-xs sm:text-sm ${
                           workerBalances[worker.id] < 0
                             ? "text-red-500"
                             : "text-green-500"
-                        }`}
+                        } cursor-pointer hover:underline`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Store the balance to use it when opening the worker page
+                          localStorage.setItem(
+                            "prefilledAmount",
+                            Math.abs(workerBalances[worker.id] || 0).toString()
+                          );
+                          localStorage.setItem("openUsageModal", "true");
+                          handleWorkerClick(worker.id);
+                        }}
                       >
                         {`₹${workerBalances[worker.id] || 0}`}
                       </span>
                     </h3>
-                    <p className="text-sm text-gray-700 mt-1">{worker.phone}</p>
+                    <p className="text-xs sm:text-sm text-gray-700 mt-1">
+                      {worker.phone}
+                    </p>
                     {worker.initialDebt && (
-                      <p className="text-sm text-red-700 font-medium mt-1">
+                      <p className="text-xs sm:text-sm text-red-700 font-medium mt-1">
                         {t("worker.debt")}: ₹{worker.initialDebt}
                       </p>
                     )}
-                  </div>
-                  <div className="mt-3 flex justify-end">
-                    <Button
-                      className="flex items-center text-sm py-1 px-2 h-auto"
-                      variant="danger"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteClick(worker.id);
-                      }}
-                    >
-                      <TrashIcon className="h-3 w-3 mr-1" />
-                      {t("common.removeUser")}
-                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -295,8 +398,8 @@ function Home() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-10">
-          <p className="text-gray-500">
+        <div className="text-center py-6 sm:py-10">
+          <p className="text-gray-500 text-sm">
             {t("common.noResults") || "No results found"}
           </p>
         </div>

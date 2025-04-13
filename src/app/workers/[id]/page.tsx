@@ -149,6 +149,23 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
     fetchData();
   }, [workerId]);
 
+  // Check for localStorage values to automatically open usage modal
+  useEffect(() => {
+    if (!isLoading && worker) {
+      const shouldOpenModal = localStorage.getItem("openUsageModal");
+      const prefilledAmount = localStorage.getItem("prefilledAmount");
+
+      if (shouldOpenModal === "true" && prefilledAmount) {
+        setUsageAmount(prefilledAmount);
+        setShowUsageModal(true);
+
+        // Clear localStorage values
+        localStorage.removeItem("openUsageModal");
+        localStorage.removeItem("prefilledAmount");
+      }
+    }
+  }, [isLoading, worker]);
+
   // Apply filters to records
   useEffect(() => {
     // Filter work records
@@ -563,7 +580,20 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
                         >
                           {t("common.total")}:
                         </td>
-                        <td className="px-2 py-2 text-right text-base font-bold text-green-700">
+                        <td
+                          className="px-2 py-2 text-right text-base font-bold text-gray-900 cursor-pointer hover:text-indigo-700"
+                          onClick={() => {
+                            const totalBalance =
+                              calculateTotal(filteredWorkRecords) -
+                              filteredUsageRecords.reduce(
+                                (total, record) => total + record.amount,
+                                0
+                              );
+                            setUsageAmount(Math.abs(totalBalance).toString());
+                            setShowUsageModal(true);
+                          }}
+                          title={t("tab.addUsage")}
+                        >
                           ₹
                           {calculateTotal(filteredWorkRecords) -
                             filteredUsageRecords.reduce(
