@@ -26,7 +26,6 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { usePathname } from "next/navigation";
 import {
   getWorkerById,
   getWorkRecords,
@@ -39,9 +38,18 @@ import {
 } from "@/utils/supabase";
 import withAuth from "@/contexts/withAuth";
 
-function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
+interface WorkerDetailProps {
+  workerId: string;
+  onBack?: () => void;
+  standalone?: boolean;
+}
+
+function WorkerDetail({
+  workerId,
+  onBack,
+  standalone = false,
+}: WorkerDetailProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState("thisWeek");
   const [worker, setWorker] = useState<Worker | null>(null);
@@ -55,12 +63,7 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
   >([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Use the prop workerId if provided, otherwise extract from the URL
-  const workerId = propWorkerId || pathname.split("/")[2];
-
-  // Check if we're being rendered directly in Home or as a separate page
-  const isDirectlyRendered = !!propWorkerId;
-
+  // State for modals and filters
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<{
     id: string;
@@ -122,7 +125,7 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
     { value: "driver", label: t("common.driver") },
   ];
 
-  // Load data from localStorage
+  // Load data from Supabase
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
@@ -205,12 +208,6 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
     setFilteredUsageRecords(filteredUsage);
   }, [workRecords, usageRecords, dateFilter, workTypeFilter]);
 
-  // Reset filters
-  const resetFilters = () => {
-    setDateFilter("");
-    setWorkTypeFilter("");
-  };
-
   // Update amount based on work type
   useEffect(() => {
     if (!showWorkModal) return;
@@ -241,6 +238,12 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
     }
   }, [workType, brickCount, dayType, kundiType, isDriver, showWorkModal]);
 
+  // Reset filters
+  const resetFilters = () => {
+    setDateFilter("");
+    setWorkTypeFilter("");
+  };
+
   // Handle record deletion
   const handleDeleteClick = (id: string, type: "work" | "usage" | "worker") => {
     setRecordToDelete({ id, type });
@@ -269,7 +272,11 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
       } else if (recordToDelete.type === "worker") {
         // Delete worker from Supabase
         await deleteWorker(workerId);
-        router.push("/");
+        if (onBack) {
+          onBack();
+        } else if (standalone) {
+          router.push("/");
+        }
       }
     } catch (error) {
       console.error("Error deleting record:", error);
@@ -377,17 +384,21 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
     return (
       <div className="text-center py-10">
         <p className="text-red-600 mb-4">{t("error.workerNotFound")}</p>
-        <Link href="/">
-          <Button>{t("nav.workers")}</Button>
-        </Link>
+        {standalone ? (
+          <Link href="/">
+            <Button>{t("nav.workers")}</Button>
+          </Link>
+        ) : (
+          onBack && <Button onClick={onBack}>{t("nav.workers")}</Button>
+        )}
       </div>
     );
   }
 
   return (
     <div>
-      {/* Only show back button if not directly rendered in Home */}
-      {!isDirectlyRendered && (
+      {/* Back button - Only show if not rendered from Home page */}
+      {standalone && (
         <div className="mb-6">
           <Link
             href="/"
@@ -879,4 +890,4 @@ function WorkerDetailPage({ workerId: propWorkerId }: { workerId?: string }) {
   );
 }
 
-export default withAuth(WorkerDetailPage);
+export default withAuth(WorkerDetail);

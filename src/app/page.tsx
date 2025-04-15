@@ -11,8 +11,8 @@ import {
   MagnifyingGlassIcon,
   XMarkIcon,
   TrashIcon,
-  ArrowLeftIcon,
   UserMinusIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
 import {
   getWorkers,
@@ -21,21 +21,7 @@ import {
   getWorkerBalance,
 } from "@/utils/supabase";
 import withAuth from "@/contexts/withAuth";
-import dynamic from "next/dynamic";
-
-// Dynamically import the worker detail page component with custom props
-const DynamicWorkerDetailPage = dynamic(
-  async () => {
-    const mod = await import("@/app/workers/[id]/page");
-    // Return a wrapper component that injects our props
-    const WorkerDetailWithProps = ({ workerId }: { workerId: string }) => {
-      return <mod.default workerId={workerId} />;
-    };
-    WorkerDetailWithProps.displayName = "WorkerDetailWithProps";
-    return WorkerDetailWithProps;
-  },
-  { ssr: false }
-);
+import WorkerDetail from "@/components/workers/WorkerDetail";
 
 function Home() {
   const { t } = useLanguage();
@@ -50,13 +36,13 @@ function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
+  const [isRemoveMode, setIsRemoveMode] = useState(false);
   const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     initialDebt: "",
   });
-  const [isRemoveMode, setIsRemoveMode] = useState(false);
 
   // Function to fetch workers and their balances
   const fetchWorkersData = useCallback(async () => {
@@ -225,6 +211,7 @@ function Home() {
   };
 
   const handleWorkerClick = (workerId: string) => {
+    // Show worker details directly in the same page
     setSelectedWorkerId(workerId);
   };
 
@@ -249,7 +236,7 @@ function Home() {
     }
   };
 
-  // If a worker is selected, show their details page
+  // If a worker is selected, show their details right in this page
   if (selectedWorkerId) {
     return (
       <div className="max-w-5xl mx-auto">
@@ -263,14 +250,15 @@ function Home() {
             {t("common.back")}
           </Button>
         </div>
-        <div key={selectedWorkerId}>
-          <DynamicWorkerDetailPage workerId={selectedWorkerId} />
-        </div>
+        <WorkerDetail
+          workerId={selectedWorkerId}
+          onBack={() => setSelectedWorkerId(null)}
+          standalone={false}
+        />
       </div>
     );
   }
 
-  // Otherwise, show the list of workers
   return (
     <div className="max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-4 sm:mb-6">
