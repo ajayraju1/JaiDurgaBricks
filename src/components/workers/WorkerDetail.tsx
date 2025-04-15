@@ -297,10 +297,43 @@ function WorkerDetail({
     return records.reduce((total, record) => total + record.amount, 0);
   };
 
-  // Format date from YYYY-MM-DD to DD/MM/YYYY
+  // Merge and sort work and usage records by date (oldest first)
+  const mergeAndSortRecords = (
+    workRecords: WorkRecord[],
+    usageRecords: UsageRecord[]
+  ) => {
+    // Create a combined array with a type field to differentiate records
+    const combined = [
+      ...workRecords.map((record) => ({
+        ...record,
+        recordType: "work" as const,
+      })),
+      ...usageRecords.map((record) => ({
+        ...record,
+        recordType: "usage" as const,
+      })),
+    ];
+
+    // Sort by date (oldest first)
+    return combined.sort((a, b) => {
+      // Convert to Date objects for comparison
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+      return dateA.getTime() - dateB.getTime();
+    });
+  };
+
+  // Format date from YYYY-MM-DD to DD/MM/YY
   const formatDate = (dateString: string) => {
-    const [year, month, day] = dateString.split("-");
-    return `${day}/${month}/${year}`;
+    const date = new Date(dateString);
+    return `${date.getDate()}/${date.getMonth() + 1}/${date
+      .getFullYear()
+      .toString()
+      .slice(-2)}`;
+  };
+
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString();
   };
 
   // Helper to get work type label
@@ -420,7 +453,7 @@ function WorkerDetail({
               <p className="text-gray-800 text-sm">{worker.phone}</p>
               {worker.initialDebt && (
                 <p className="text-red-600 text-sm">
-                  {t("worker.debt")}: ₹{worker.initialDebt}
+                  {t("worker.debt")}: ₹{formatNumber(worker.initialDebt)}
                 </p>
               )}
             </div>
@@ -523,57 +556,55 @@ function WorkerDetail({
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredWorkRecords.map((record) => (
+                      {mergeAndSortRecords(
+                        filteredWorkRecords,
+                        filteredUsageRecords
+                      ).map((record) => (
                         <tr
                           key={record.id}
-                          className="bg-green-50 hover:bg-green-100"
+                          className={
+                            record.recordType === "work"
+                              ? "bg-green-50 hover:bg-green-100"
+                              : "bg-red-50 hover:bg-red-100"
+                          }
                         >
                           <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
                             {formatDate(record.date)}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-sm text-green-800">
-                            {getWorkTypeLabel(record.workType)}
-                            {record.isDriver && record.workType === "kundi"
-                              ? ` - ${t("common.driver")}`
-                              : record.workType !== "kundi" &&
-                                record.isDriver &&
-                                ` - ${t("common.driver")}`}
-                            {record.brickCount && ` (${record.brickCount})`}
-                            {record.isHalfDay && ` - ${t("common.halfDay")}`}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-base text-green-700 text-right font-medium">
-                            ₹{record.amount}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-right">
-                            <button
-                              onClick={() =>
-                                handleDeleteClick(record.id, "work")
-                              }
-                              className="text-red-600 hover:text-red-800"
-                            >
-                              <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                      {filteredUsageRecords.map((record) => (
-                        <tr
-                          key={record.id}
-                          className="bg-red-50 hover:bg-red-100"
-                        >
                           <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
-                            {formatDate(record.date)}
+                            {record.recordType === "work" ? (
+                              <span className="text-green-800">
+                                {getWorkTypeLabel(record.workType)}
+                                {record.isDriver && record.workType === "kundi"
+                                  ? ` - ${t("common.driver")}`
+                                  : record.workType !== "kundi" &&
+                                    record.isDriver &&
+                                    ` - ${t("common.driver")}`}
+                                {record.brickCount && ` (${record.brickCount})`}
+                                {record.isHalfDay &&
+                                  ` - ${t("common.halfDay")}`}
+                              </span>
+                            ) : (
+                              <span className="text-red-600">
+                                {t("tab.usage")}
+                              </span>
+                            )}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-sm text-red-600">
-                            {t("tab.usage")}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-base text-red-600 text-right font-medium">
-                            -₹{record.amount}
+                          <td className="px-2 py-2 whitespace-nowrap text-base text-right font-medium">
+                            {record.recordType === "work" ? (
+                              <span className="text-green-700">
+                                ₹{formatNumber(record.amount)}
+                              </span>
+                            ) : (
+                              <span className="text-red-600">
+                                -₹{formatNumber(record.amount)}
+                              </span>
+                            )}
                           </td>
                           <td className="px-2 py-2 whitespace-nowrap text-right">
                             <button
                               onClick={() =>
-                                handleDeleteClick(record.id, "usage")
+                                handleDeleteClick(record.id, record.recordType)
                               }
                               className="text-red-600 hover:text-red-800"
                             >
@@ -606,12 +637,15 @@ function WorkerDetail({
                           title={t("tab.addUsage")}
                         >
                           ₹
-                          {calculateTotal(filteredWorkRecords) -
-                            filteredUsageRecords.reduce(
-                              (total, record) => total + record.amount,
-                              0
-                            )}
+                          {formatNumber(
+                            calculateTotal(filteredWorkRecords) -
+                              filteredUsageRecords.reduce(
+                                (total, record) => total + record.amount,
+                                0
+                              )
+                          )}
                         </td>
+                        <td></td>
                       </tr>
                     </tfoot>
                   </table>
@@ -637,42 +671,50 @@ function WorkerDetail({
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredWorkRecords.map((record) => (
+                      {mergeAndSortRecords(
+                        filteredWorkRecords,
+                        filteredUsageRecords
+                      ).map((record) => (
                         <tr
                           key={record.id}
-                          className="bg-green-50 hover:bg-green-100"
+                          className={
+                            record.recordType === "work"
+                              ? "bg-green-50 hover:bg-green-100"
+                              : "bg-red-50 hover:bg-red-100"
+                          }
                         >
                           <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
                             {formatDate(record.date)}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-sm text-green-800">
-                            {getWorkTypeLabel(record.workType)}
-                            {record.isDriver && record.workType === "kundi"
-                              ? ` - ${t("common.driver")}`
-                              : record.workType !== "kundi" &&
-                                record.isDriver &&
-                                ` - ${t("common.driver")}`}
-                            {record.brickCount && ` (${record.brickCount})`}
-                            {record.isHalfDay && ` - ${t("common.halfDay")}`}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-base text-green-700 text-right font-medium">
-                            ₹{record.amount}
-                          </td>
-                        </tr>
-                      ))}
-                      {filteredUsageRecords.map((record) => (
-                        <tr
-                          key={record.id}
-                          className="bg-red-50 hover:bg-red-100"
-                        >
                           <td className="px-2 py-2 whitespace-nowrap text-sm text-gray-800">
-                            {formatDate(record.date)}
+                            {record.recordType === "work" ? (
+                              <span className="text-green-800">
+                                {getWorkTypeLabel(record.workType)}
+                                {record.isDriver && record.workType === "kundi"
+                                  ? ` - ${t("common.driver")}`
+                                  : record.workType !== "kundi" &&
+                                    record.isDriver &&
+                                    ` - ${t("common.driver")}`}
+                                {record.brickCount && ` (${record.brickCount})`}
+                                {record.isHalfDay &&
+                                  ` - ${t("common.halfDay")}`}
+                              </span>
+                            ) : (
+                              <span className="text-red-600">
+                                {t("tab.usage")}
+                              </span>
+                            )}
                           </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-sm text-red-600">
-                            {t("tab.usage")}
-                          </td>
-                          <td className="px-2 py-2 whitespace-nowrap text-base text-red-600 text-right font-medium">
-                            -₹{record.amount}
+                          <td className="px-2 py-2 whitespace-nowrap text-base text-right font-medium">
+                            {record.recordType === "work" ? (
+                              <span className="text-green-700">
+                                ₹{formatNumber(record.amount)}
+                              </span>
+                            ) : (
+                              <span className="text-red-600">
+                                -₹{formatNumber(record.amount)}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       ))}
@@ -687,11 +729,13 @@ function WorkerDetail({
                         </td>
                         <td className="px-2 py-2 text-right text-base font-bold text-gray-900">
                           ₹
-                          {calculateTotal(filteredWorkRecords) -
-                            filteredUsageRecords.reduce(
-                              (total, record) => total + record.amount,
-                              0
-                            )}
+                          {formatNumber(
+                            calculateTotal(filteredWorkRecords) -
+                              filteredUsageRecords.reduce(
+                                (total, record) => total + record.amount,
+                                0
+                              )
+                          )}
                         </td>
                       </tr>
                     </tfoot>

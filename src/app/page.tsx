@@ -5,7 +5,9 @@ import { Card, CardContent } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useLanguage } from "@/utils/i18n";
+import withAuth from "@/contexts/withAuth";
 import { Worker } from "@/types";
+import WorkerDetail from "@/components/workers/WorkerDetail";
 import {
   UserPlusIcon,
   MagnifyingGlassIcon,
@@ -20,8 +22,6 @@ import {
   deleteWorker,
   getWorkerBalance,
 } from "@/utils/supabase";
-import withAuth from "@/contexts/withAuth";
-import WorkerDetail from "@/components/workers/WorkerDetail";
 
 function Home() {
   const { t } = useLanguage();
@@ -31,18 +31,17 @@ function Home() {
     [key: string]: number;
   }>({});
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [workerToDelete, setWorkerToDelete] = useState<string | null>(null);
-  const [isRemoveMode, setIsRemoveMode] = useState(false);
-  const [selectedWorkerId, setSelectedWorkerId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
+  const [newWorker, setNewWorker] = useState({
     name: "",
     phone: "",
     initialDebt: "",
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   // Function to fetch workers and their balances
   const fetchWorkersData = useCallback(async () => {
@@ -73,10 +72,10 @@ function Home() {
 
   // Refresh data when returning from worker details
   useEffect(() => {
-    if (!selectedWorkerId) {
+    if (!selectedWorker) {
       fetchWorkersData();
     }
-  }, [selectedWorkerId, fetchWorkersData]);
+  }, [selectedWorker, fetchWorkersData]);
 
   // Filter workers based on search query
   useEffect(() => {
@@ -136,14 +135,14 @@ function Home() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setNewWorker((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
   const resetForm = () => {
-    setFormData({
+    setNewWorker({
       name: "",
       phone: "",
       initialDebt: "",
@@ -151,31 +150,27 @@ function Home() {
   };
 
   const handleAddWorker = async () => {
-    if (!formData.name || !formData.phone) return;
-
-    setIsSubmitting(true);
+    if (!newWorker.name || !newWorker.phone) return;
 
     try {
       // Create new worker in Supabase
-      const newWorker = await createWorker({
-        name: formData.name,
-        phone: formData.phone,
-        ...(formData.initialDebt && {
-          initialDebt: Number(formData.initialDebt),
+      const newWorkerData = await createWorker({
+        name: newWorker.name,
+        phone: newWorker.phone,
+        ...(newWorker.initialDebt && {
+          initialDebt: Number(newWorker.initialDebt),
         }),
       });
 
       // Update state
-      setWorkers((prev) => [newWorker, ...prev]);
-      setFilteredWorkers((prev) => [newWorker, ...prev]);
+      setWorkers((prev) => [newWorkerData, ...prev]);
+      setFilteredWorkers((prev) => [newWorkerData, ...prev]);
 
       // Close modal and reset form
       setShowAddModal(false);
       resetForm();
     } catch (error) {
       console.error("Error adding worker:", error);
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -193,8 +188,8 @@ function Home() {
       );
 
       // If the deleted worker was selected, go back to list view
-      if (selectedWorkerId === workerToDelete) {
-        setSelectedWorkerId(null);
+      if (selectedWorker && selectedWorker.id === workerToDelete) {
+        setSelectedWorker(null);
       }
 
       // Close modal
@@ -210,20 +205,24 @@ function Home() {
     setWorkerToDelete(null);
   };
 
+  const formatNumber = (num: number): string => {
+    return num.toLocaleString();
+  };
+
   const handleWorkerClick = (workerId: string) => {
     // Show worker details directly in the same page
-    setSelectedWorkerId(workerId);
+    setSelectedWorker(workers.find((worker) => worker.id === workerId) || null);
   };
 
   const toggleRemoveMode = () => {
-    setIsRemoveMode(!isRemoveMode);
-    if (isRemoveMode) {
+    setShowRemoveModal(!showRemoveModal);
+    if (showRemoveModal) {
       setWorkerToDelete(null);
     }
   };
 
   const handleCardClick = (workerId: string) => {
-    if (isRemoveMode) {
+    if (showRemoveModal) {
       setWorkerToDelete(workerId === workerToDelete ? null : workerId);
     } else {
       handleWorkerClick(workerId);
@@ -237,22 +236,22 @@ function Home() {
   };
 
   // If a worker is selected, show their details right in this page
-  if (selectedWorkerId) {
+  if (selectedWorker) {
     return (
       <div className="max-w-5xl mx-auto">
         <div className="mb-6">
           <Button
-            onClick={() => setSelectedWorkerId(null)}
+            onClick={() => setSelectedWorker(null)}
             className="flex items-center"
             variant="ghost"
           >
-            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            <ArrowLeftIcon className="h-5 w-5 mr-2" />
             {t("common.back")}
           </Button>
         </div>
         <WorkerDetail
-          workerId={selectedWorkerId}
-          onBack={() => setSelectedWorkerId(null)}
+          workerId={selectedWorker.id}
+          onBack={() => setSelectedWorker(null)}
           standalone={false}
         />
       </div>
@@ -260,7 +259,7 @@ function Home() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-center mb-4 sm:mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 drop-shadow-sm">
           {t("nav.workers")}
@@ -268,14 +267,14 @@ function Home() {
         <div className="flex space-x-2 sm:space-x-3">
           <Button
             className={`flex items-center shadow-sm ${
-              isRemoveMode
+              showRemoveModal
                 ? "bg-gray-600 hover:bg-gray-700"
                 : "bg-red-600 hover:bg-red-700"
             } text-white text-xs sm:text-sm py-1 px-2 sm:py-2 sm:px-3`}
             onClick={toggleRemoveMode}
           >
             <UserMinusIcon className="h-4 w-4 mr-1" />
-            {isRemoveMode ? t("common.cancel") : t("common.removeUser")}
+            {showRemoveModal ? t("common.cancel") : t("common.removeUser")}
           </Button>
           <Button
             className="flex items-center bg-blue-600 hover:bg-blue-700 text-white shadow-sm text-xs sm:text-sm py-1 px-2 sm:py-2 sm:px-3"
@@ -302,7 +301,7 @@ function Home() {
       </div>
 
       {/* Remove Mode Notification */}
-      {isRemoveMode && (
+      {showRemoveModal && (
         <div className="mb-4 sm:mb-6 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-800 text-xs sm:text-sm">
             {t("common.selectUserToRemove") || "Select a person to remove"}
@@ -332,7 +331,7 @@ function Home() {
             <div
               key={worker.id}
               className={`h-full transition-all bg-white border cursor-pointer rounded-lg ${
-                isRemoveMode
+                showRemoveModal
                   ? worker.id === workerToDelete
                     ? "border-red-500 shadow-md ring-2 ring-red-500"
                     : "border-gray-200 hover:border-red-200"
@@ -343,7 +342,7 @@ function Home() {
               <Card className="h-full border-0 shadow-none">
                 <CardContent
                   className={`p-3 sm:pt-4 ${
-                    isRemoveMode && worker.id === workerToDelete
+                    showRemoveModal && worker.id === workerToDelete
                       ? "bg-red-50"
                       : ""
                   }`}
@@ -368,7 +367,7 @@ function Home() {
                           handleWorkerClick(worker.id);
                         }}
                       >
-                        {`₹${workerBalances[worker.id] || 0}`}
+                        {`₹${formatNumber(workerBalances[worker.id] || 0)}`}
                       </span>
                     </h3>
                     <p className="text-xs sm:text-sm text-gray-700 mt-1">
@@ -376,7 +375,7 @@ function Home() {
                     </p>
                     {worker.initialDebt && (
                       <p className="text-xs sm:text-sm text-red-700 font-medium mt-1">
-                        {t("worker.debt")}: ₹{worker.initialDebt}
+                        {t("worker.debt")}: ₹{formatNumber(worker.initialDebt)}
                       </p>
                     )}
                   </div>
@@ -416,7 +415,7 @@ function Home() {
                 </label>
                 <Input
                   name="name"
-                  value={formData.name}
+                  value={newWorker.name}
                   onChange={handleInputChange}
                   placeholder={t("worker.name") || "Name"}
                   className="w-full"
@@ -428,7 +427,7 @@ function Home() {
                 </label>
                 <Input
                   name="phone"
-                  value={formData.phone}
+                  value={newWorker.phone}
                   onChange={handleInputChange}
                   placeholder={t("worker.phone") || "Phone"}
                   className="w-full"
@@ -440,7 +439,7 @@ function Home() {
                 </label>
                 <Input
                   name="initialDebt"
-                  value={formData.initialDebt}
+                  value={newWorker.initialDebt}
                   onChange={handleInputChange}
                   placeholder={t("worker.initialDebt") || "Initial Debt"}
                   className="w-full"
@@ -453,11 +452,7 @@ function Home() {
                 >
                   {t("common.cancel")}
                 </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleAddWorker}
-                  disabled={isSubmitting}
-                >
+                <Button variant="primary" onClick={handleAddWorker}>
                   {t("common.add")}
                 </Button>
               </div>

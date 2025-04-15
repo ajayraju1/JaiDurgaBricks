@@ -33,6 +33,10 @@ const translations: Translations = {
     en: "Calculator",
     te: "క్యాల్క్యులేటర్",
   },
+  "nav.brickLoads": {
+    en: "Brick Loads",
+    te: "ఈటుక లావాడేవిళు",
+  },
 
   // Authentication
   "auth.signIn": {
@@ -290,6 +294,80 @@ const translations: Translations = {
   "calculator.clear": {
     en: "AC",
     te: "AC",
+  },
+
+  // Brick Loads
+  "brickLoad.title": {
+    en: "Brick Loads",
+    te: "ఈటుక లావాడేవిళు",
+  },
+  "brickLoad.add": {
+    en: "Add Load Details",
+    te: "లోడ్ వివరాలు జోడించండి",
+  },
+  "brickLoad.village": {
+    en: "Village Name",
+    te: "గ్రామం పేరు",
+  },
+  "brickLoad.phone": {
+    en: "Phone Number",
+    te: "ఫోన్ నంబర్",
+  },
+  "brickLoad.brickQuantity": {
+    en: "Brick Quantity (in thousands)",
+    te: "ఇటుకల సంఖ్య (వేల సంఖ్యలో)",
+  },
+  "brickLoad.brickRate": {
+    en: "Brick Rate (per 1000)",
+    te: "ఇటుక రేటు (1000 కి)",
+  },
+  "brickLoad.totalAmount": {
+    en: "Total Amount",
+    te: "మొత్తం",
+  },
+  "brickLoad.amountPaid": {
+    en: "Amount Paid (optional)",
+    te: "ఇచ్చిన డబ్బు (ఐచ్ఛికం)",
+  },
+  "brickLoad.pendingAmount": {
+    en: "Pending Amount",
+    te: "బకాయి మొత్తం",
+  },
+  "brickLoad.bricks": {
+    en: "Bricks",
+    te: "ఇటుకలు",
+  },
+  "brickLoad.logs": {
+    en: "Logs",
+    te: "లాగ్‌లు",
+  },
+  "brickLoad.addBrickLog": {
+    en: "Add New Brick Log",
+    te: "కొత్త లోడ్",
+  },
+  "brickLoad.addPayment": {
+    en: "Add New Payment",
+    te: "కొత్త చెల్లింపు",
+  },
+  "brickLoad.payment": {
+    en: "Payment",
+    te: "చెల్లింపు",
+  },
+  "brickLoad.summary": {
+    en: "Summary",
+    te: "సారాంశం",
+  },
+  "brickLoad.totalBricks": {
+    en: "Total Bricks",
+    te: "మొత్తం ఇటుక",
+  },
+  "brickLoad.totalPayments": {
+    en: "Total Payments",
+    te: "మొత్తం చెల్లింపులు",
+  },
+  "brickLoad.search": {
+    en: "Search by village name or phone number...",
+    te: "గ్రామం పేరు లేదా ఫోన్ నంబర్ వెతకండి...",
   },
 };
 

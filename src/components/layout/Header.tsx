@@ -10,12 +10,16 @@ import {
   ArrowRightOnRectangleIcon,
   BuildingStorefrontIcon,
   CalculatorIcon,
+  TruckIcon,
 } from "@heroicons/react/24/outline";
 import { useLanguage } from "@/utils/i18n";
 import { useAuth } from "@/contexts/AuthContext";
 import { CalculatorModal } from "../ui/CalculatorModal";
 
-export const Header: React.FC = () => {
+export const Header: React.FC<{
+  setActiveView?: (view: string) => void;
+  activeView?: string;
+}> = ({ setActiveView, activeView }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
@@ -39,6 +43,13 @@ export const Header: React.FC = () => {
     if (isMenuOpen) setIsMenuOpen(false);
   };
 
+  const handleViewChange = (view: string) => {
+    if (setActiveView) {
+      setActiveView(view);
+      if (isMenuOpen) setIsMenuOpen(false);
+    }
+  };
+
   return (
     <header className="bg-indigo-600 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -58,13 +69,24 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-8">
-            <Link
-              href="/"
-              className="flex items-center text-white hover:text-indigo-200 px-3 py-2 text-sm font-medium"
+            <button
+              onClick={() => handleViewChange("workers")}
+              className={`flex items-center text-white hover:text-indigo-200 px-3 py-2 text-sm font-medium ${
+                activeView === "workers" ? "border-b-2 border-white" : ""
+              }`}
             >
               <HomeIcon className="h-5 w-5 mr-1" />
               {t("nav.home")}
-            </Link>
+            </button>
+            <button
+              onClick={() => handleViewChange("brickLoads")}
+              className={`flex items-center text-white hover:text-indigo-200 px-3 py-2 text-sm font-medium ${
+                activeView === "brickLoads" ? "border-b-2 border-white" : ""
+              }`}
+            >
+              <TruckIcon className="h-5 w-5 mr-1" />
+              {t("nav.brickLoads")}
+            </button>
             <button
               onClick={toggleCalculator}
               className="flex items-center text-white hover:text-indigo-200 px-3 py-2 text-sm font-medium"
@@ -114,14 +136,20 @@ export const Header: React.FC = () => {
       {isMenuOpen && (
         <div className="sm:hidden bg-indigo-700">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            <Link
-              href="/"
-              className="flex items-center text-white hover:bg-indigo-800 block px-3 py-2 rounded-md text-base font-medium"
-              onClick={() => setIsMenuOpen(false)}
+            <button
+              onClick={() => handleViewChange("workers")}
+              className="flex items-center text-white hover:bg-indigo-800 w-full text-left px-3 py-2 rounded-md text-base font-medium"
             >
               <HomeIcon className="h-5 w-5 mr-2" />
               {t("nav.home")}
-            </Link>
+            </button>
+            <button
+              onClick={() => handleViewChange("brickLoads")}
+              className="flex items-center text-white hover:bg-indigo-800 w-full text-left px-3 py-2 rounded-md text-base font-medium"
+            >
+              <TruckIcon className="h-5 w-5 mr-2" />
+              {t("nav.brickLoads")}
+            </button>
             <button
               onClick={toggleCalculator}
               className="flex items-center text-white hover:bg-indigo-800 w-full text-left px-3 py-2 rounded-md text-base font-medium"

@@ -1,0 +1,805 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import * as React from "react";
+import { Card, CardContent } from "@/components/ui/Card";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { useLanguage } from "@/utils/i18n";
+import {
+  ArrowLeftIcon,
+  PlusIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
+import { supabase } from "@/utils/supabase";
+import withAuth from "@/contexts/withAuth";
+
+// Types
+interface BrickLoad {
+  id: string;
+  villageName: string;
+  phoneNumber: string;
+  brickQuantity: number;
+  brickRate: number;
+  totalAmount: number;
+  amountPaid: number;
+  date: string;
+  createdAt: string;
+}
+
+interface BrickLoadLog {
+  id: string;
+  brickLoadId: string;
+  date: string;
+  logType: "brick" | "payment";
+  brickQuantity?: number;
+  brickRate?: number;
+  amount: number;
+  createdAt: string;
+}
+
+function BrickLoadDetail() {
+  const { t } = useLanguage();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [brickLoads, setBrickLoads] = useState<BrickLoad[]>([]);
+  const [filteredLoads, setFilteredLoads] = useState<BrickLoad[]>([]);
+  const [selectedLoad, setSelectedLoad] = useState<BrickLoad | null>(null);
+  const [loadLogs, setLoadLogs] = useState<BrickLoadLog[]>([]);
+
+  // Form states
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showBrickLogModal, setShowBrickLogModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  // Form fields
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [villageName, setVillageName] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [brickQuantity, setBrickQuantity] = useState("");
+  const [brickRate, setBrickRate] = useState("");
+  const [amountPaid, setAmountPaid] = useState("");
+
+  // For adding new brick log
+  const [newBrickQuantity, setNewBrickQuantity] = useState("");
+  const [newBrickRate, setNewBrickRate] = useState("");
+  const [newBrickDate, setNewBrickDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
+  // For adding new payment
+  const [newPaymentAmount, setNewPaymentAmount] = useState("");
+  const [newPaymentDate, setNewPaymentDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
+  // Load data
+  useEffect(() => {
+    fetchBrickLoads();
+  }, []);
+
+  // Filter loads based on search
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = brickLoads.filter(
+        (load) =>
+          load.villageName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          load.phoneNumber.includes(searchQuery)
+      );
+      setFilteredLoads(filtered);
+    } else {
+      setFilteredLoads(brickLoads);
+    }
+  }, [searchQuery, brickLoads]);
+
+  const fetchBrickLoads = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("brick_loads")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      const loadData = data.map((load) => ({
+        id: load.id,
+        villageName: load.village_name,
+        phoneNumber: load.phone_number,
+        brickQuantity: load.brick_quantity,
+        brickRate: load.brick_rate,
+        totalAmount: load.total_amount,
+        amountPaid: load.amount_paid || 0,
+        date: load.date,
+        createdAt: load.created_at,
+      }));
+
+      setBrickLoads(loadData);
+      setFilteredLoads(loadData);
+    } catch (error) {
+      console.error("Error fetching brick loads:", error);
+    }
+  };
+
+  const fetchLoadLogs = async (loadId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("brick_load_logs")
+        .select("*")
+        .eq("brick_load_id", loadId)
+        .order("date", { ascending: false });
+
+      if (error) throw error;
+
+      const logsData = data.map((log) => ({
+        id: log.id,
+        brickLoadId: log.brick_load_id,
+        date: log.date,
+        logType: log.log_type,
+        brickQuantity: log.brick_quantity,
+        brickRate: log.brick_rate,
+        amount: log.amount,
+        createdAt: log.created_at,
+      }));
+
+      setLoadLogs(logsData);
+    } catch (error) {
+      console.error("Error fetching load logs:", error);
+    }
+  };
+
+  const handleAddLoad = async () => {
+    try {
+      const brickQty = parseFloat(brickQuantity);
+      const rate = parseFloat(brickRate);
+      const paid = amountPaid ? parseFloat(amountPaid) : 0;
+      const totalAmount = brickQty * 1000 * rate;
+
+      // Insert new brick load
+      const { data: loadData, error: loadError } = await supabase
+        .from("brick_loads")
+        .insert([
+          {
+            date,
+            village_name: villageName,
+            phone_number: phoneNumber,
+            brick_quantity: brickQty,
+            brick_rate: rate,
+            total_amount: totalAmount,
+            amount_paid: paid,
+          },
+        ])
+        .select()
+        .single();
+
+      if (loadError) throw loadError;
+
+      // Add brick log
+      await supabase.from("brick_load_logs").insert([
+        {
+          brick_load_id: loadData.id,
+          date,
+          log_type: "brick",
+          brick_quantity: brickQty,
+          brick_rate: rate,
+          amount: totalAmount,
+        },
+      ]);
+
+      // Add payment log if payment was made
+      if (paid > 0) {
+        await supabase.from("brick_load_logs").insert([
+          {
+            brick_load_id: loadData.id,
+            date,
+            log_type: "payment",
+            amount: paid,
+          },
+        ]);
+      }
+
+      // Reset form and fetch updated loads
+      resetForm();
+      setShowAddModal(false);
+      await fetchBrickLoads();
+    } catch (error) {
+      console.error("Error adding brick load:", error);
+    }
+  };
+
+  const handleAddBrickLog = async () => {
+    if (!selectedLoad) return;
+
+    try {
+      const brickQty = parseFloat(newBrickQuantity);
+      const rate = parseFloat(newBrickRate);
+      const totalAmount = brickQty * 1000 * rate;
+
+      // Add brick log
+      await supabase.from("brick_load_logs").insert([
+        {
+          brick_load_id: selectedLoad.id,
+          date: newBrickDate,
+          log_type: "brick",
+          brick_quantity: brickQty,
+          brick_rate: rate,
+          amount: totalAmount,
+        },
+      ]);
+
+      // Update brick load total
+      const newTotal = selectedLoad.totalAmount + totalAmount;
+      await supabase
+        .from("brick_loads")
+        .update({
+          total_amount: newTotal,
+          brick_quantity: selectedLoad.brickQuantity + brickQty,
+        })
+        .eq("id", selectedLoad.id);
+
+      // Reset and refresh
+      setNewBrickQuantity("");
+      setNewBrickRate("");
+      setShowBrickLogModal(false);
+      await fetchBrickLoads();
+      if (selectedLoad) {
+        await fetchLoadLogs(selectedLoad.id);
+        // Update selected load
+        const updatedLoad = {
+          ...selectedLoad,
+          totalAmount: newTotal,
+          brickQuantity: selectedLoad.brickQuantity + brickQty,
+        };
+        setSelectedLoad(updatedLoad);
+      }
+    } catch (error) {
+      console.error("Error adding brick log:", error);
+    }
+  };
+
+  const handleAddPayment = async () => {
+    if (!selectedLoad) return;
+
+    try {
+      const payment = parseFloat(newPaymentAmount);
+
+      // Add payment log
+      await supabase.from("brick_load_logs").insert([
+        {
+          brick_load_id: selectedLoad.id,
+          date: newPaymentDate,
+          log_type: "payment",
+          amount: payment,
+        },
+      ]);
+
+      // Update brick load payment
+      const newPaid = selectedLoad.amountPaid + payment;
+      await supabase
+        .from("brick_loads")
+        .update({
+          amount_paid: newPaid,
+        })
+        .eq("id", selectedLoad.id);
+
+      // Reset and refresh
+      setNewPaymentAmount("");
+      setShowPaymentModal(false);
+      await fetchBrickLoads();
+      if (selectedLoad) {
+        await fetchLoadLogs(selectedLoad.id);
+        // Update selected load
+        const updatedLoad = { ...selectedLoad, amountPaid: newPaid };
+        setSelectedLoad(updatedLoad);
+      }
+    } catch (error) {
+      console.error("Error adding payment:", error);
+    }
+  };
+
+  const handleLoadSelect = (load: BrickLoad) => {
+    setSelectedLoad(load);
+    fetchLoadLogs(load.id);
+  };
+
+  const resetForm = () => {
+    setDate(new Date().toISOString().split("T")[0]);
+    setVillageName("");
+    setPhoneNumber("");
+    setBrickQuantity("");
+    setBrickRate("");
+    setAmountPaid("");
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+  };
+
+  // Calculate total amount for add form
+  const calculateTotal = () => {
+    if (!brickQuantity || !brickRate) return 0;
+    return parseFloat(brickQuantity) * 1000 * parseFloat(brickRate);
+  };
+
+  // Calculate pending amount
+  const calculatePending = (load: BrickLoad) => {
+    return load.totalAmount - load.amountPaid;
+  };
+
+  // Calculate totals for logs
+  const calculateLogTotals = () => {
+    let brickTotal = 0;
+    let paymentTotal = 0;
+
+    loadLogs.forEach((log) => {
+      if (log.logType === "brick") {
+        brickTotal += log.amount;
+      } else if (log.logType === "payment") {
+        paymentTotal += log.amount;
+      }
+    });
+
+    return { brickTotal, paymentTotal, balance: brickTotal - paymentTotal };
+  };
+
+  return (
+    <div className="container mx-auto p-4">
+      {!selectedLoad ? (
+        <>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold">{t("brickLoad.title")}</h1>
+          </div>
+
+          <div className="mb-6 flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder={t("brickLoad.search")}
+                className="w-full px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            </div>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              <PlusIcon className="h-5 w-5 mr-1" /> {t("brickLoad.add")}
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredLoads.map((load) => (
+              <Card
+                key={load.id}
+                className="cursor-pointer hover:shadow-lg"
+                onClick={() => handleLoadSelect(load)}
+              >
+                <CardContent className="p-4">
+                  <h3 className="text-lg font-semibold">{load.villageName}</h3>
+                  <p className="text-sm text-gray-600">{load.phoneNumber}</p>
+                  <div className="mt-2 flex justify-between">
+                    <div>
+                      <p className="text-sm">బకాయి మొత్తం:</p>
+                      <p className="text-red-600 font-semibold">
+                        ₹{calculatePending(load).toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm">మొత్తం:</p>
+                      <p className="font-semibold">
+                        ₹{load.totalAmount.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm">ఇటుకలు:</p>
+                      <p className="font-semibold">
+                        {(load.brickQuantity * 1000).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {formatDate(load.date)}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div>
+          <div className="flex items-center mb-6">
+            <Button
+              onClick={() => setSelectedLoad(null)}
+              className="mr-4 bg-gray-200 hover:bg-gray-300 text-gray-800"
+            >
+              <ArrowLeftIcon className="h-5 w-5 mr-1" /> {t("common.back")}
+            </Button>
+            <h1 className="text-2xl font-bold">{selectedLoad.villageName}</h1>
+            <p className="ml-4 text-gray-600">{selectedLoad.phoneNumber}</p>
+          </div>
+
+          <div className="flex gap-4 mb-6">
+            <Button
+              onClick={() => setShowBrickLogModal(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              <PlusIcon className="h-5 w-5 mr-1" /> {t("brickLoad.addBrickLog")}
+            </Button>
+            <Button
+              onClick={() => setShowPaymentModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              <PlusIcon className="h-5 w-5 mr-1" /> {t("brickLoad.addPayment")}
+            </Button>
+          </div>
+
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <h3 className="text-sm text-gray-500">మొత్తం ఇటుకలు</h3>
+                  <p className="text-lg font-semibold">
+                    {(selectedLoad.brickQuantity * 1000).toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">మొత్తం</h3>
+                  <p className="text-lg font-semibold">
+                    ₹{selectedLoad.totalAmount.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">చెల్లించారు</h3>
+                  <p className="text-lg font-semibold text-green-600">
+                    ₹{selectedLoad.amountPaid.toFixed(2)}
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-sm text-gray-500">బకాయి</h3>
+                  <p className="text-lg font-semibold text-red-600">
+                    ₹{calculatePending(selectedLoad).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <h2 className="text-xl font-bold mb-4">లాగ్‌లు</h2>
+
+          <div className="space-y-4">
+            {loadLogs.map((log) => (
+              <Card key={log.id}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between">
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        {formatDate(log.date)}
+                      </p>
+                      {log.logType === "brick" ? (
+                        <>
+                          <p className="font-semibold">
+                            ఇటుకలు:{" "}
+                            {(log.brickQuantity! * 1000).toLocaleString()}
+                          </p>
+                          <p>రేటు: ₹{log.brickRate} / 1000</p>
+                          <p className="text-red-600 font-semibold">
+                            మొత్తం: ₹{log.amount.toFixed(2)}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-green-600 font-semibold">
+                          చెల్లింపు: ₹{log.amount.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span
+                        className={`inline-block px-2 py-1 text-xs rounded-full ${
+                          log.logType === "brick"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
+                        {log.logType === "brick" ? "ఇటుకలు" : "చెల్లింపు"}
+                      </span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card className="mt-6">
+            <CardContent className="p-4">
+              <h3 className="text-lg font-semibold mb-2">సారాంశం</h3>
+              {(() => {
+                const { brickTotal, paymentTotal, balance } =
+                  calculateLogTotals();
+                return (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500">మొత్తం ఇటుకలు</p>
+                      <p className="text-lg font-semibold text-red-600">
+                        ₹{brickTotal.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        మొత్తం చెల్లింపులు
+                      </p>
+                      <p className="text-lg font-semibold text-green-600">
+                        ₹{paymentTotal.toFixed(2)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">బకాయి</p>
+                      <p className="text-lg font-semibold">
+                        ₹{balance.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Add Load Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-indigo-600/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-xl font-bold mb-4 text-indigo-900">
+              లోడ్ వివరాలు జోడించండి
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  తేదీ
+                </label>
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  గ్రామం పేరు
+                </label>
+                <Input
+                  type="text"
+                  value={villageName}
+                  onChange={(e) => setVillageName(e.target.value)}
+                  required
+                  placeholder="గ్రామం పేరు"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ఫోన్ నంబర్
+                </label>
+                <Input
+                  type="text"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="ఫోన్ నంబర్"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ఇటుకల సంఖ్య (వేల సంఖ్యలో)
+                </label>
+                <Input
+                  type="number"
+                  value={brickQuantity}
+                  onChange={(e) => setBrickQuantity(e.target.value)}
+                  required
+                  placeholder="ఉదా: 5.5 (5500 ఇటుకలు)"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ఇటుక రేటు (1000 కి)
+                </label>
+                <Input
+                  type="number"
+                  value={brickRate}
+                  onChange={(e) => setBrickRate(e.target.value)}
+                  required
+                  placeholder="ఒక్కో 1000 ఇటుకలకు ధర"
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  మొత్తం
+                </label>
+                <p className="text-lg font-semibold">
+                  ₹{calculateTotal().toFixed(2)}
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  అతను ఇచ్చిన డబ్బు (ఐచ్ఛికం)
+                </label>
+                <Input
+                  type="number"
+                  value={amountPaid}
+                  onChange={(e) => setAmountPaid(e.target.value)}
+                  placeholder="ముందుగా చెల్లించిన మొత్తం"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                onClick={() => setShowAddModal(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+              >
+                రద్దు చేయండి
+              </Button>
+              <Button
+                onClick={handleAddLoad}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                సేవ్ చేయండి
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Brick Log Modal */}
+      {showBrickLogModal && (
+        <div className="fixed inset-0 bg-indigo-600/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-xl font-bold mb-4 text-indigo-900">
+              కొత్త ఇటుకల లాగ్ జోడించండి
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  తేదీ
+                </label>
+                <Input
+                  type="date"
+                  value={newBrickDate}
+                  onChange={(e) => setNewBrickDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ఇటుకల సంఖ్య (వేల సంఖ్యలో)
+                </label>
+                <Input
+                  type="number"
+                  value={newBrickQuantity}
+                  onChange={(e) => setNewBrickQuantity(e.target.value)}
+                  required
+                  placeholder="ఉదా: 5.5 (5500 ఇటుకలు)"
+                  step="0.1"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  ఇటుక రేటు (1000 కి)
+                </label>
+                <Input
+                  type="number"
+                  value={newBrickRate}
+                  onChange={(e) => setNewBrickRate(e.target.value)}
+                  required
+                  placeholder="ఒక్కో 1000 ఇటుకలకు ధర"
+                  step="0.01"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  మొత్తం
+                </label>
+                <p className="text-lg font-semibold">
+                  ₹
+                  {newBrickQuantity && newBrickRate
+                    ? (
+                        parseFloat(newBrickQuantity) *
+                        1000 *
+                        parseFloat(newBrickRate)
+                      ).toFixed(2)
+                    : "0.00"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                onClick={() => setShowBrickLogModal(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+              >
+                రద్దు చేయండి
+              </Button>
+              <Button
+                onClick={handleAddBrickLog}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                సేవ్ చేయండి
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-indigo-600/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg p-6 w-full max-w-md shadow-xl">
+            <h2 className="text-xl font-bold mb-4 text-indigo-900">
+              కొత్త చెల్లింపు జోడించండి
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  తేదీ
+                </label>
+                <Input
+                  type="date"
+                  value={newPaymentDate}
+                  onChange={(e) => setNewPaymentDate(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  చెల్లించిన మొత్తం
+                </label>
+                <Input
+                  type="number"
+                  value={newPaymentAmount}
+                  onChange={(e) => setNewPaymentAmount(e.target.value)}
+                  required
+                  placeholder="చెల్లించిన మొత్తం"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                onClick={() => setShowPaymentModal(false)}
+                className="bg-gray-200 hover:bg-gray-300 text-gray-800"
+              >
+                రద్దు చేయండి
+              </Button>
+              <Button
+                onClick={handleAddPayment}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                సేవ్ చేయండి
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default withAuth(BrickLoadDetail);
